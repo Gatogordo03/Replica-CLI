@@ -1,0 +1,26 @@
+# Archivos y carpetas generados automáticamente
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos de respaldo y logs
+*.log
+*.bak
+*.tmp
+
+# Archivos generados por el sistema operativo
+.DS_Store  # macOS
+Thumbs.db  # Windows
+desktop.ini  # Windows
+
+# Carpetas específicas del proyecto
+copias_de_seguridad/
+temporal/
+metadatos.json
+claves_respaldo/
+venv/
+
+# Archivos generados por PyInstaller
+dist/
+build/
+*.spec
