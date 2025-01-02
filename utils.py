@@ -1,8 +1,13 @@
 import shutil
 import os
 import json
+import colorama
+from colorama import Fore, Style
 from datetime import datetime
 from cryptography.fernet import Fernet
+
+# Inicializar colorama
+colorama.init(autoreset=True)
 
 def copiar_directorio(origen, destino):
     """Copia todo el contenido de un directorio a otro."""
@@ -15,10 +20,36 @@ def copiar_directorio(origen, destino):
         return False
 
 def registrar_log(origen, destino, exito):
-    """Registra la operación en un archivo de log."""
-    log = f"{'Éxito' if exito else 'Error'}: Copiado desde {origen} hacia {destino}\n"
-    with open("registro.log", "a") as archivo_log:
-        archivo_log.write(log)
+    """Registra el resultado de una operación en el archivo de log."""
+    log_file = "backup.log"  # Cambiado a extensión .log
+
+    # Verificar si el archivo de log existe y crearlo si no
+    if not os.path.exists(log_file):
+        with open(log_file, "w", encoding="utf-8") as archivo:
+            archivo.write("Registro de Operaciones - Replica\n")
+            archivo.write("=" * 40 + "\n")
+        print(f"Archivo de log creado: {log_file}")
+
+    # Escribir el resultado de la operación en el log
+    fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    estado = "Éxito" if exito else "Fallo"
+    mensaje = f"[{fecha_hora}] {estado}: {origen} -> {destino}\n"
+
+    with open(log_file, "a", encoding="utf-8") as log:
+        log.write(mensaje)
+    print(f"Resultado registrado en el log: {log_file}")
+
+def ver_logs():
+    """Muestra el contenido del archivo de log."""
+    log_file = "backup.log"  # Cambiado a extensión .log
+    if not os.path.exists(log_file):
+        print(Fore.RED + "No se encontró el archivo de log. Aún no se han registrado operaciones.")
+        return
+
+    print(Fore.CYAN + "\n**** Contenido del Log ****")
+    with open(log_file, "r", encoding="utf-8") as archivo:
+        print(archivo.read())
+    input(Fore.CYAN + "\nPresiona Enter para volver al menú principal.")
 
 def navegar_directorios():
     """Navegador interactivo de directorios con opción para mostrar u ocultar elementos ocultos."""
@@ -202,3 +233,20 @@ def sincronizar_bidireccional(origen, copia):
                 os.makedirs(os.path.dirname(dest_file), exist_ok=True)
                 shutil.copy2(src_file, dest_file)
                 print(f"Archivo copiado/actualizado: {dest_file}")
+
+def limpiar_pantalla():
+    """Limpia la pantalla de la terminal."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def imprimir_menu():
+    """Muestra un menú con colores y formato."""
+    limpiar_pantalla()
+    print(Fore.CYAN + "************************************")
+    print(Fore.CYAN + "*      Gestor de Copias Replica    *")
+    print(Fore.CYAN + "************************************\n")
+    print(Fore.YELLOW + "1. Copiar unidad")
+    print(Fore.YELLOW + "2. Realizar copia de seguridad")
+    print(Fore.YELLOW + "3. Encriptar copia de seguridad")
+    print(Fore.YELLOW + "4. Ver logs de operaciones")
+    print(Fore.RED + "x. Salir\n")
+    print(Fore.CYAN + "Selecciona una opción:")

@@ -2,6 +2,8 @@ import platform
 import os
 from backup_manager import gestionar_respaldo, encriptar_respaldo
 from disk_manager import clonar_unidad
+from utils import limpiar_pantalla, imprimir_menu, ver_logs
+from colorama import Fore
 
 # Detectar el sistema operativo y definir la ruta de respaldos
 sistema = platform.system()
@@ -17,18 +19,24 @@ else:
 if not os.path.exists(RUTA_RESPALDOS):
     os.makedirs(RUTA_RESPALDOS)
 
-if __name__ == "__main__":
-    print("Gestor de Discos y Copias de Seguridad")
-    print("1. Copiar unidad")
-    print("2. Realizar copia de seguridad")
-    print("3. Encriptar copia de seguridad")
-    opcion = input("Selecciona una opción: ").strip()
+def main():
+    while True:
+        imprimir_menu()
+        opcion = input("Selecciona una opción: ").strip().lower()
 
-    if opcion == "1":
-        clonar_unidad()
-    elif opcion == "2":
-        gestionar_respaldo()
-    elif opcion == "3":
-        encriptar_respaldo()
-    else:
-        print("Opción no válida.")
+        if opcion == "x":
+            print(Fore.RED + "\nSaliendo del programa. ¡Hasta luego!")
+            break
+        elif opcion == "1":
+            clonar_unidad()
+        elif opcion == "2":
+            gestionar_respaldo()
+        elif opcion == "3":
+            encriptar_respaldo()
+        elif opcion == "4":
+            ver_logs()
+        else:
+            print(Fore.RED + "Opción no válida. Por favor, intenta de nuevo.")
+
+if __name__ == "__main__":
+    main()
