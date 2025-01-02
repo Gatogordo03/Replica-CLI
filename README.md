@@ -3,9 +3,11 @@
 Replica es una herramienta de línea de comandos (CLI) para gestionar copias de seguridad de discos y directorios. Ofrece sincronización bidireccional, cifrado, y un flujo intuitivo para usuarios en Windows, macOS, y Linux.
 
 ## Características
-- **Sincronización bidireccional:** Mantén tus respaldos idénticos al origen.
+- **Sincronización bidireccional**: Mantén los respaldos sincronizados con su origen, incluyendo la eliminación de archivos obsoletos.
 - **Cifrado seguro:** Protege tus respaldos con claves únicas.
 - **Compatible con múltiples sistemas operativos.**
+- **Manejo de logs**: Todos los eventos importantes (éxitos y fallos) se registran en el archivo `backup.log` automáticamente.
+- **Experiencia interactiva**: Opciones fáciles de navegar con colores en la terminal, limpieza de pantalla y la posibilidad de cancelar cualquier proceso.
 
 ## Instalación
 ### Requisitos
@@ -26,6 +28,19 @@ Replica es una herramienta de línea de comandos (CLI) para gestionar copias de 
    ```bash
    python main.py
    ```
+
+## Uso
+1. **Iniciar el programa**:
+   - Ejecuta `python main.py` para acceder al menú principal.
+   - Usa las opciones numéricas para seleccionar una acción.
+   - Presiona `x` en cualquier momento para cancelar un proceso o salir.
+
+2. **Visualizar logs**:
+   - Desde el menú principal, selecciona la opción para ver los logs y revisa los eventos registrados.
+
+3. **Sincronización bidireccional**:
+   - Selecciona la opción de sincronización para mantener tus respaldos actualizados.
+   - Si la ruta original no se encuentra, puedes seleccionar manualmente una nueva ruta.
 
 ## Licencia
 
