@@ -1,6 +1,6 @@
 # Replica: Gestor de Copias de Seguridad
 
-Replica es una herramienta de línea de comandos (CLI) para gestionar copias de seguridad de discos y directorios. Ofrece sincronización bidireccional, cifrado, y un flujo intuitivo para usuarios en Windows, macOS, y Linux.
+Replica-CLI es una herramienta de línea de comandos (CLI) para gestionar copias de seguridad de discos y directorios. Ofrece sincronización bidireccional, cifrado, y un flujo intuitivo para usuarios en Windows, macOS, y Linux.
 
 ## Características
 - **Sincronización bidireccional**: Mantén los respaldos sincronizados con su origen, incluyendo la eliminación de archivos obsoletos.
@@ -12,7 +12,7 @@ Replica es una herramienta de línea de comandos (CLI) para gestionar copias de 
 ## Instalación
 ### Requisitos
 - Python 3.8 o superior
-- Dependencias: `psutil`, `cryptography`
+- Dependencias: `psutil`, `cryptography`, `colorama`
 
 ### Instalación con pip
 1. Clona este repositorio:
@@ -46,7 +46,7 @@ Replica es una herramienta de línea de comandos (CLI) para gestionar copias de 
 
 Este proyecto está bajo la licencia MIT. Esto significa que puedes usar, modificar y distribuir este código para cualquier propósito, siempre que mantengas la atribución al autor original.
 
-Consulta el archivo [LICENSE](./LICENSE) para más detalles.
+Consulta el archivo [LICENSE](./LICENCE) para más detalles.
 
 ### Contribuciones y Licencia
 

@@ -107,6 +107,18 @@ def generar_clave(nombre_respaldo):
     print(f"Clave generada y guardada en: {ruta_clave}")
     return clave
 
+def cargar_clave(nombre_respaldo):
+    """Carga la clave asociada a un respaldo específico."""
+    carpeta_claves = "./claves_respaldo"
+    ruta_clave = os.path.join(carpeta_claves, f"{nombre_respaldo}.key")
+
+    try:
+        with open(ruta_clave, "rb") as clave_file:
+            return clave_file.read()
+    except FileNotFoundError:
+        print(Fore.RED + f"No se encontró la clave para el respaldo: {nombre_respaldo}")
+        return None
+
 def cifrar_archivo(archivo_zip):
     """Cifra un archivo ZIP usando una clave única."""
     nombre_respaldo = os.path.basename(archivo_zip).replace(".zip", "")
@@ -124,6 +136,25 @@ def cifrar_archivo(archivo_zip):
         return True
     except Exception as e:
         print(f"Error al cifrar el archivo: {e}")
+        return False
+
+def descifrar_archivo(ruta_cifrada, ruta_destino, clave):
+    """Descifra un archivo cifrado con una clave proporcionada."""
+    fernet = Fernet(clave)
+
+    try:
+        with open(ruta_cifrada, "rb") as archivo_cifrado:
+            datos_cifrados = archivo_cifrado.read()
+
+        datos_descifrados = fernet.decrypt(datos_cifrados)
+
+        with open(ruta_destino, "wb") as archivo_descifrado:
+            archivo_descifrado.write(datos_descifrados)
+
+        print(Fore.GREEN + f"Archivo descifrado guardado como: {ruta_destino}")
+        return True
+    except Exception as e:
+        print(Fore.RED + f"Error al descifrar el archivo: {e}")
         return False
 
 def obtener_ruta_original(nombre_respaldo):
@@ -245,8 +276,7 @@ def imprimir_menu():
     print(Fore.CYAN + "*      Gestor de Copias Replica    *")
     print(Fore.CYAN + "************************************\n")
     print(Fore.YELLOW + "1. Copiar unidad")
-    print(Fore.YELLOW + "2. Realizar copia de seguridad")
-    print(Fore.YELLOW + "3. Encriptar copia de seguridad")
-    print(Fore.YELLOW + "4. Ver logs de operaciones")
+    print(Fore.YELLOW + "2. Gestionar copias de seguridad")
+    print(Fore.YELLOW + "3. Ver logs de operaciones")
     print(Fore.RED + "x. Salir\n")
     print(Fore.CYAN + "Selecciona una opción:")

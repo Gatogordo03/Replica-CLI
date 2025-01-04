@@ -6,7 +6,7 @@ from datetime import datetime
 from utils import (copiar_directorio, registrar_log, generar_clave, cifrar_archivo, 
                    navegar_directorios, obtener_ruta_original, seleccionar_opcion, 
                    guardar_metadatos, sincronizar_bidireccional, actualizar_ruta_origen,
-                   limpiar_pantalla)
+                   limpiar_pantalla, cargar_clave, descifrar_archivo)
 RUTA_RESPALDOS = "./copias_de_seguridad"
 
 def gestionar_respaldo():
@@ -14,20 +14,61 @@ def gestionar_respaldo():
     limpiar_pantalla()
     print(Fore.CYAN + "**** Gestionar Copias de Seguridad ****")
     print(Fore.YELLOW + "Ingresa 'x' en cualquier momento para cancelar y volver al menú principal.\n")
-
-    print("1. Sincronizar con una copia existente")
-    print("2. Crear una nueva copia de seguridad")
-    opcion = input("Selecciona una opción: ").strip().lower()
+    print("1. Ver lista de copias")
+    print("2. Sincronizar con una copia existente")
+    print("3. Crear una nueva copia de seguridad")
+    print("4. Encriptar una copia de seguridad")
+    print("5. Desencriptar una copia de seguridad")
+    print("6. Eliminar una copia de respaldo")
+    opcion = input(Fore.CYAN + "Selecciona una opción: ").strip().lower()
 
     if opcion == "x":
-        print(Fore.RED + "Proceso cancelado. Volviendo al menú principal...")
+        print(Fore.RED + "Volviendo al menú principal...")
         return
     elif opcion == "1":
-        sincronizar_copia()
+        ver_lista_copias()
     elif opcion == "2":
+        sincronizar_copia()
+    elif opcion == "3":
         nueva_copia()
+    elif opcion == "4":
+        encriptar_respaldo()
+    elif opcion == "5":
+        desencriptar_respaldo()
+    elif opcion == "6":
+        eliminar_copia()
     else:
-        print(Fore.RED + "Opción no válida.")
+        print(Fore.RED + "Opción no válida. Por favor, intenta de nuevo.")
+
+def ver_lista_copias():
+    """Muestra una lista de copias de seguridad disponibles (encriptadas o no)."""
+    tipo_actual = "zip"  # Comienza mostrando las copias sin encriptar
+    while True:
+        limpiar_pantalla()
+        tipo_texto = "Copias Sin Encriptar" if tipo_actual == "zip" else "Copias Encriptadas"
+        print(Fore.CYAN + f"**** Ver {tipo_texto} ****")
+        print(Fore.YELLOW + "Ingresa 'E' para alternar entre tipos de copia, o presiona Enter para volver al menú principal.\n")
+
+        # Filtrar respaldos según el tipo actual
+        extension = ".zip" if tipo_actual == "zip" else ".zip.enc"
+        respaldos = [r for r in os.listdir(RUTA_RESPALDOS) if r.endswith(extension)]
+
+        if not respaldos:
+            print(Fore.RED + f"No hay {tipo_texto.lower()} disponibles.")
+        else:
+            print(Fore.CYAN + "Copias disponibles:")
+            for i, respaldo in enumerate(respaldos):
+                print(f"{Fore.YELLOW}{i + 1}. {respaldo}")
+
+        # Entrada del usuario
+        opcion = input(Fore.CYAN + "\nPresiona 'E' para alternar o Enter para volver: ").strip().lower()
+        if opcion == "":
+            print(Fore.GREEN + "Volviendo al menú principal...")
+            return
+        elif opcion == "e":
+            tipo_actual = "enc" if tipo_actual == "zip" else "zip"
+        else:
+            print(Fore.RED + "Entrada inválida. Por favor, ingresa 'E' o presiona Enter.")
 
 def sincronizar_copia():
     """Sincroniza cambios con una copia de seguridad existente."""
@@ -106,25 +147,54 @@ def sincronizar_copia():
 def nueva_copia():
     """Crea una nueva copia de seguridad en la carpeta central."""
     print("Selecciona el directorio de origen para la nueva copia:")
-    origen = navegar_directorios()  # Usa el navegador interactivo
+    origen = navegar_directorios()
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     nombre_respaldo = f"copia_{timestamp}.zip"
     destino_zip = os.path.join(RUTA_RESPALDOS, nombre_respaldo)
 
-    print(f"Comprimiendo y creando nueva copia de seguridad: {destino_zip}...")
-    with zipfile.ZipFile(destino_zip, 'w') as zipf:
-        for carpeta, _, archivos in os.walk(origen):
-            for archivo in archivos:
-                ruta_archivo = os.path.join(carpeta, archivo)
-                zipf.write(ruta_archivo, os.path.relpath(ruta_archivo, origen))
-    registrar_log(origen, destino_zip, True)
+    print(Fore.YELLOW + f"\nCreando copia de seguridad: {destino_zip}...")
+    exito = comprimir_copia(origen, destino_zip)
+    if not exito:
+        print(Fore.RED + "Error al crear la copia de seguridad.")
+        registrar_log(origen, destino_zip, False)
+        return
 
-    # Guardar los metadatos
-    guardar_metadatos(nombre_respaldo, origen)
+    print(Fore.YELLOW + "¿Deseas encriptar esta copia? (s/n): ")
+    encriptar = input(Fore.CYAN + ">> ").strip().lower() == 's'
 
-    cifrar = input("¿Deseas cifrar esta copia de seguridad ahora? (s/n): ").strip().lower() == "s"
-    if cifrar:
-        cifrar_archivo(destino_zip)
+    if encriptar:
+        exito_encriptar = cifrar_archivo(destino_zip)
+        if exito_encriptar:
+            os.remove(destino_zip)  # Eliminar la versión .zip
+            print(Fore.GREEN + f"Copia encriptada creada con éxito: {destino_zip}.enc")
+            registrar_log(origen, destino_zip + ".enc", True)
+        else:
+            print(Fore.RED + "Error al encriptar la copia.")
+            registrar_log(origen, destino_zip, False)
+    else:
+        print(Fore.GREEN + f"Copia de seguridad creada con éxito: {destino_zip}")
+        registrar_log(origen, destino_zip, True)
+
+def comprimir_copia(origen, destino_zip):
+    """Comprime un archivo o directorio en un archivo ZIP."""
+    try:
+        with zipfile.ZipFile(destino_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            if os.path.isfile(origen):
+                # Si el origen es un archivo
+                zipf.write(origen, os.path.basename(origen))
+            else:
+                # Si el origen es un directorio
+                for root, _, files in os.walk(origen):
+                    for file in files:
+                        full_path = os.path.join(root, file)
+                        arcname = os.path.relpath(full_path, start=origen)
+                        zipf.write(full_path, arcname)
+
+        print(f"Copia comprimida exitosamente: {destino_zip}")
+        return True
+    except Exception as e:
+        print(f"Error al comprimir: {e}")
+        return False
 
 def encriptar_respaldo():
     """Permite encriptar una copia de seguridad existente."""
@@ -146,3 +216,128 @@ def encriptar_respaldo():
 
     cifrar_archivo(ruta_respaldo)
     print(f"Encriptación completada para {respaldo}.")
+
+def desencriptar_respaldo():
+    """Permite desencriptar una copia de seguridad existente."""
+    limpiar_pantalla()
+    print(Fore.CYAN + "**** Desencriptar Copia de Seguridad ****")
+    print(Fore.YELLOW + "Ingresa 'x' en cualquier momento para cancelar y volver al menú principal.\n")
+
+    # Listar copias encriptadas
+    respaldos_encriptados = [r for r in os.listdir(RUTA_RESPALDOS) if r.endswith(".zip.enc")]
+    if not respaldos_encriptados:
+        print(Fore.RED + "No hay copias de seguridad encriptadas disponibles.")
+        input(Fore.CYAN + "Presiona Enter para volver al menú principal.")
+        return
+
+    print("\nCopias encriptadas disponibles:")
+    for i, respaldo in enumerate(respaldos_encriptados):
+        print(f"{Fore.YELLOW}{i + 1}. {respaldo}")
+
+    while True:
+        opcion = input("\nSelecciona una copia para desencriptar: ").strip().lower()
+        if opcion == "x":
+            print(Fore.RED + "Proceso cancelado. Volviendo al menú principal...")
+            return
+
+        try:
+            indice = int(opcion) - 1
+            if 0 <= indice < len(respaldos_encriptados):
+                respaldo = respaldos_encriptados[indice]
+                break
+            else:
+                print(Fore.RED + "Opción fuera de rango. Intenta nuevamente.")
+        except ValueError:
+            print(Fore.RED + "Entrada inválida. Por favor, ingresa un número.")
+
+    ruta_respaldo_enc = os.path.join(RUTA_RESPALDOS, respaldo)
+    nombre_respaldo = respaldo.replace(".zip.enc", "")
+    ruta_respaldo_dec = os.path.join(RUTA_RESPALDOS, f"{nombre_respaldo}.zip")
+    clave_respaldo = cargar_clave(nombre_respaldo)
+
+    if not clave_respaldo:
+        print(Fore.RED + "No se encontró la clave asociada a esta copia.")
+        input(Fore.CYAN + "Presiona Enter para volver al menú principal.")
+        return
+
+    print(Fore.YELLOW + f"\nDesencriptando {respaldo}...")
+    exito = descifrar_archivo(ruta_respaldo_enc, ruta_respaldo_dec, clave_respaldo)
+
+    if exito:
+        print(Fore.GREEN + f"Copia desencriptada con éxito: {ruta_respaldo_dec}")
+        registrar_log(ruta_respaldo_enc, f"Desencriptado a {ruta_respaldo_dec}", True)
+    else:
+        print(Fore.RED + "Fallo al desencriptar la copia.")
+        registrar_log(ruta_respaldo_enc, "Fallo al desencriptar", False)
+
+    input(Fore.CYAN + "Presiona Enter para volver al menú principal.")
+
+def eliminar_copia():
+    """Elimina una copia de respaldo completa, alternando entre copias encriptadas y sin encriptar."""
+    tipo_actual = "zip"  # Comienza mostrando las copias sin encriptar
+    while True:
+        limpiar_pantalla()
+        tipo_texto = "Copias Sin Encriptar" if tipo_actual == "zip" else "Copias Encriptadas"
+        print(Fore.CYAN + f"**** Eliminar {tipo_texto} ****")
+        print(Fore.YELLOW + "Ingresa 'x' para cancelar o 'E' para alternar entre tipos de copia.\n")
+
+        # Filtrar respaldos según el tipo actual
+        extension = ".zip" if tipo_actual == "zip" else ".zip.enc"
+        respaldos = [r for r in os.listdir(RUTA_RESPALDOS) if r.endswith(extension)]
+
+        if not respaldos:
+            print(Fore.RED + f"No hay {tipo_texto.lower()} disponibles.")
+        else:
+            print(Fore.CYAN + "Copias disponibles:")
+            for i, respaldo in enumerate(respaldos):
+                print(f"{Fore.YELLOW}{i + 1}. {respaldo}")
+
+        # Entrada del usuario
+        opcion = input(Fore.CYAN + "Selecciona una opción: ").strip().lower()
+
+        if opcion == "x":
+            print(Fore.RED + "Volviendo al menú principal...")
+            return
+        elif opcion == "e":
+            tipo_actual = "enc" if tipo_actual == "zip" else "zip"
+            continue
+
+        try:
+            indice = int(opcion) - 1
+            if 0 <= indice < len(respaldos):
+                respaldo = respaldos[indice]
+                break
+            else:
+                print(Fore.RED + "Opción fuera de rango. Intenta nuevamente.")
+        except ValueError:
+            print(Fore.RED + "Entrada inválida. Por favor, ingresa un número o 'E'.")
+            continue
+
+    # Confirmación y eliminación
+    print(Fore.RED + f"\n¡Advertencia! Esto eliminará la copia {respaldo} y todos sus archivos asociados.")
+    confirmacion = input(Fore.YELLOW + "¿Estás seguro? (s/n): ").strip().lower()
+    if confirmacion != "s":
+        print(Fore.RED + "Eliminación cancelada. Volviendo al menú principal...")
+        return
+
+    # Eliminar archivos relacionados
+    respaldo_ruta = os.path.join(RUTA_RESPALDOS, respaldo)
+    nombre_respaldo = respaldo.replace(extension, "")
+    clave_ruta = os.path.join("./claves_respaldo", f"{nombre_respaldo}.key")
+
+    try:
+        if os.path.exists(respaldo_ruta):
+            os.remove(respaldo_ruta)
+            print(Fore.GREEN + f"Eliminado: {respaldo_ruta}")
+
+        if tipo_actual == "enc" and os.path.exists(clave_ruta):
+            os.remove(clave_ruta)
+            print(Fore.GREEN + f"Eliminado: {clave_ruta}")
+
+        registrar_log(respaldo_ruta, "Eliminado", True)
+        print(Fore.GREEN + "Eliminación completada con éxito.")
+    except Exception as e:
+        registrar_log(respaldo_ruta, "Fallo al eliminar", False)
+        print(Fore.RED + f"Error al eliminar los archivos: {e}")
+
+    input(Fore.CYAN + "\nPresiona Enter para volver al menú principal.")

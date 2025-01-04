@@ -32,8 +32,6 @@ def main():
         elif opcion == "2":
             gestionar_respaldo()
         elif opcion == "3":
-            encriptar_respaldo()
-        elif opcion == "4":
             ver_logs()
         else:
             print(Fore.RED + "Opción no válida. Por favor, intenta de nuevo.")
