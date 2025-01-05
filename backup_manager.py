@@ -1,12 +1,15 @@
 import os
 import shutil
 import zipfile
+import json
 from colorama import Fore
 from datetime import datetime
 from utils import (copiar_directorio, registrar_log, generar_clave, cifrar_archivo, 
                    navegar_directorios, obtener_ruta_original, seleccionar_opcion, 
                    guardar_metadatos, sincronizar_bidireccional, actualizar_ruta_origen,
-                   limpiar_pantalla, cargar_clave, descifrar_archivo)
+                   limpiar_pantalla, cargar_clave, descifrar_archivo, verificar_y_crear_ruta,
+                   verificar_y_crear_json)
+
 RUTA_RESPALDOS = "./copias_de_seguridad"
 
 def gestionar_respaldo():
@@ -76,6 +79,12 @@ def sincronizar_copia():
     print(Fore.CYAN + "**** Sincronizar Copia de Seguridad ****")
     print(Fore.YELLOW + "Ingresa 'x' en cualquier momento para cancelar y volver al menú principal.\n")
 
+    # Verificar y cargar el archivo JSON
+    ruta_json = "metadatos.json"
+    verificar_y_crear_json(ruta_json)
+    with open(ruta_json, "r") as json_file:
+        data = json.load(json_file)
+
     respaldos = [r for r in os.listdir(RUTA_RESPALDOS) if r.endswith(".zip")]
     if not respaldos:
         print(Fore.RED + "No hay copias de seguridad existentes.")
@@ -103,7 +112,7 @@ def sincronizar_copia():
             print(Fore.RED + "Entrada inválida. Por favor, ingresa un número.")
 
     ruta_respaldo = os.path.join(RUTA_RESPALDOS, respaldo)
-    ruta_original = obtener_ruta_original(respaldo)
+    ruta_original = data.get(respaldo, {}).get("origen")  # Obtener la ruta del JSON
     sincronizacion_exitosa = False  # Estado inicial
 
     if not ruta_original or not os.path.exists(ruta_original):
@@ -113,7 +122,12 @@ def sincronizar_copia():
         if ruta_original.lower() == "x":
             print(Fore.RED + "Proceso cancelado. Volviendo al menú principal...")
             return
-        actualizar_ruta_origen(respaldo, ruta_original)
+
+        # Actualizar el JSON con la nueva ruta
+        data[respaldo] = {"origen": ruta_original}
+        with open(ruta_json, "w") as json_file:
+            json.dump(data, json_file, indent=4)
+        print(Fore.GREEN + f"Ruta actualizada en el archivo JSON: {ruta_original}")
 
     temporal = "./temporal"
     try:
@@ -146,6 +160,8 @@ def sincronizar_copia():
 
 def nueva_copia():
     """Crea una nueva copia de seguridad en la carpeta central."""
+    verificar_y_crear_ruta(RUTA_RESPALDOS)  # Asegura que la carpeta de respaldos exista
+
     print("Selecciona el directorio de origen para la nueva copia:")
     origen = navegar_directorios()
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

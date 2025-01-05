@@ -9,6 +9,39 @@ from cryptography.fernet import Fernet
 # Inicializar colorama
 colorama.init(autoreset=True)
 
+def verificar_y_crear_ruta(ruta):
+    """Verifica si una ruta existe, y la crea si no existe."""
+    if not os.path.exists(ruta):
+        try:
+            os.makedirs(ruta)
+            print(f"Ruta creada exitosamente: {ruta}")
+        except Exception as e:
+            print(f"Error al crear la ruta {ruta}: {e}")
+            raise
+
+def verificar_y_crear_json(ruta_json):
+    """Verifica si el archivo JSON existe, y lo crea si no existe."""
+    if not os.path.exists(ruta_json):
+        try:
+            with open(ruta_json, "w") as json_file:
+                json.dump({}, json_file)  # Crear JSON vacío
+            print(f"Archivo JSON creado: {ruta_json}")
+        except Exception as e:
+            print(f"Error al crear el archivo JSON {ruta_json}: {e}")
+            raise
+
+def cargar_json(ruta_json):
+    """Carga un archivo JSON, asegurando que exista."""
+    verificar_y_crear_json(ruta_json)
+    try:
+        with open(ruta_json, "r") as json_file:
+            return json.load(json_file)
+    except json.JSONDecodeError:
+        print(f"Error al leer el archivo JSON: {ruta_json}. Reestableciendo...")
+        with open(ruta_json, "w") as json_file:
+            json.dump({}, json_file)  # Reestablecer JSON vacío
+        return {}
+
 def copiar_directorio(origen, destino):
     """Copia todo el contenido de un directorio a otro."""
     try:
@@ -97,8 +130,7 @@ def navegar_directorios():
 def generar_clave(nombre_respaldo):
     """Genera una clave única y la guarda en una carpeta específica."""
     carpeta_claves = "./claves_respaldo"
-    if not os.path.exists(carpeta_claves):
-        os.makedirs(carpeta_claves)
+    verificar_y_crear_ruta(carpeta_claves)  # Asegura que la carpeta de claves exista
 
     clave = Fernet.generate_key()
     ruta_clave = os.path.join(carpeta_claves, f"{nombre_respaldo}.key")
